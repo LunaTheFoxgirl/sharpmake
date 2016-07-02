@@ -16,6 +16,9 @@ _In other words, target 0._
 
 Feel free to look at the [Makefile](https://github.com/Member1221/sharpmake/blob/master/Makefile) for reference.
 
+## Check out the [Wiki](https://github.com/Member1221/sharpmake/wiki) for usage help, etc! 
+
+
 ---
 
 Todo
