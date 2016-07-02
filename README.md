@@ -1,6 +1,6 @@
-sharpmake
+SharpMake
 ======
-##### A bad C# Makefile system, that uses JSON for Makefile structures.
+##### A .NET Makefile system, that uses JSON for Makefile structuring.
 A far from finished C# Makefile system mainly for personal use. This application uses Json.Net (https://github.com/JamesNK/Newtonsoft.Json)
 
 ---
