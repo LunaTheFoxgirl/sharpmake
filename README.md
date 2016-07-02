@@ -21,7 +21,6 @@ Feel free to look at the [Makefile](https://github.com/Member1221/sharpmake/blob
 Todo
 ======
 * Command arguments
-  * --out
   * --outputdir
   * --arch
   * --binref
