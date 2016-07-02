@@ -593,7 +593,7 @@ Run 'smake --license' to see license information, or consult the LICENSE file bu
     Note for Makefile creators: Default makefile is the first makefile in the list!
 Example Usage:
     smake                                   | Default run
-    smake [OtherMakefile] build_and_clean   | Select Makefile 'OtherMakeFile' and run 'build_and_clean' in it.
+    smake -m OtherMakefile build_and_clean  | Select Makefile 'OtherMakeFile' and run 'build_and_clean' in it.
     smake --verbose --mono --arch x86       | Run verbose, force 32 bit and force to use mono.
 Arguments (Optional):
     [target]              | Select target to be run.
