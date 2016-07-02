@@ -28,4 +28,9 @@ Todo
   * --binref
   * --asmref
   * --pkgref
-  * 
+* Features
+  * File linking (non .net)
+  * package referancing
+  * Sequencial export naming
+  * unsafe code switching
+  * platform selection
