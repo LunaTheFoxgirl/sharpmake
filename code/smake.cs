@@ -135,6 +135,10 @@ namespace SharpMake
         private static SharpMakeVars.SharpMakeConfig CONFIG;
         private static bool COMMAND_ONLY = false;
 
+        private static string forced_output = "";
+        private static List<string> forced_asm = new List<string>();
+
+
         public static void Main(string[] args)
         {
             if (System.Environment.OSVersion.Platform == PlatformID.Win32NT ||
@@ -144,8 +148,9 @@ namespace SharpMake
 
             if (args.Length > 0)
             {
-                foreach(string arg in args)
+                for (int i = 0; i < args.Length; i++)
                 {
+                    string arg = args[i].ToLower();
                     if (arg == "--help" || arg == "-h")
                     {
                         Console.WriteLine(GetHelpStr());
@@ -165,11 +170,17 @@ namespace SharpMake
                     {
                         IS_VERBOSE = true;
                     }
-                    else if (arg.StartsWith("[") && arg.EndsWith("]"))
+                    else if (arg == ("--makefile") || arg == "-m")
                     {
-                        var mkfile = arg.Substring(1).Remove(arg.Length-2);
+                        var mkfile = args[i+1];
                         if (File.Exists(mkfile))
                             CRT_MKFL = mkfile;
+                        i++;
+                    }
+                    else if (arg == "--out" || arg == "-o")
+                    {
+                        forced_output = args[i+1];
+                        i++;
                     }
                     else if (arg == "--mono")
                     {
@@ -184,7 +195,6 @@ namespace SharpMake
                     {
                         TARGET_NAME = arg;
                     }
-
                 }
             }
             if (File.Exists(CRT_MKFL))
@@ -337,6 +347,9 @@ namespace SharpMake
         private static void BeginBuild()
         {
             var watch = System.Diagnostics.Stopwatch.StartNew();
+            if (!string.IsNullOrEmpty(forced_output))
+                CONFIG.target[TARGET].output = forced_output;
+
 
             if (IS_VERBOSE)
             {
@@ -370,6 +383,7 @@ namespace SharpMake
             }
 
             SetOutputFile();
+
             if (!IS_VERBOSE)
                 Print(string.Format("Compiling {0} to {1}...",CONFIG.target[TARGET].output + TranslateExtensionNoAction(CONFIG.target[TARGET].output_type), CONFIG.target[TARGET].output_dir));
             VerbosePrint("Running Compiler... [mcs " + CMD_ARGS + "]");
@@ -497,11 +511,16 @@ namespace SharpMake
         // Gets a directory, makes it if not found
         private static string GetDir(string dir)
         {
-            string[] dirs = Directory.GetDirectories(dir);
-            if (dirs.Length > 1)
-                return dirs[0];
-            else
+            try
+            {
+                string[] dirs = Directory.GetDirectories(dir);
+                if (dirs.Length > 1)
+                    return dirs[0];
+            }
+            catch
+            {
                 Directory.CreateDirectory(dir);
+            }
             return dir;
         }
 
@@ -577,8 +596,8 @@ Example Usage:
     smake [OtherMakefile] build_and_clean   | Select Makefile 'OtherMakeFile' and run 'build_and_clean' in it.
     smake --verbose --mono --arch x86       | Run verbose, force 32 bit and force to use mono.
 Arguments (Optional):
-    <target>              | Select target to be run.
-    [<makefile>]          | Select Makefile by name, otherwise 'Makefile' is selected (if found).
+    [target]              | Select target to be run.
+    -m/--makefile <file>  | Select Makefile by name, otherwise 'Makefile' is selected (if found).
     -v/verbose            | Enable verbose logging output.
     -h/--help             | Show help.
     -o/--out <file name>  | Overwrite output file.
