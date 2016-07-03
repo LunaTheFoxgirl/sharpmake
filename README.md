@@ -11,6 +11,10 @@ Linux/Mac OSX: mcs code/smake.cs code/smake_data.cs /reference:libs/Newtonsoft.J
 
 Windows: csc code/smake.cs code/smake_data.cs /reference:libs/Newtonsoft.Json.dll -o smake.exe # NOT TESTED
 ```
+OR use build 0.5 from the releases, and run:
+```
+Linux: mkdir build; smake [Makefile_legacy]; cp build/smake.exe smake.exe; mono smake.exe all; rm smake.exe;
+```
 
 To compile software with smake, run `smake (target)`.
 _You can leave 'target' blank, if you do it will use the default target. Which is the first target on the target list._
