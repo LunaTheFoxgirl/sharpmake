@@ -78,10 +78,8 @@
                     "recipe_data":[
                         {
                             "commands":[
-                                "git add --all",
-                                "bash message=$(dialog --inputbox \"Enter commit message:\" 6 70 2 2>&1 1>&3)",
-                                "git commit -m $message",
-                                "git push"
+                                "sudo chmod +x git_commit.sh",
+                                "sudo ./git_commit.sh"
                             ],
                             "is_post":false
                         }
