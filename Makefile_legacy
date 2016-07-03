@@ -55,10 +55,10 @@
             ]
         },
         {
-            "target_name":"full",
+            "target_name":"all",
             "recipes":[
                 {
-                    "recipe_name":"full",
+                    "recipe_name":"all",
                     "command_only":true,
                     "recipe_data":[
                         {
