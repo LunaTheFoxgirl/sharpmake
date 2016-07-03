@@ -17,13 +17,10 @@
                     "command_only":false,
                     "recipe_data":[
                         {
-                            "command":"sudo",
-                            "arguments":"mkbundle build/smake.exe build/Newtonsoft.Json.dll -o /bin/smake",
-                            "is_post":true
-                        },
-                        {
-                            "command":"sudo",
-                            "arguments":"chmod +x /bin/smake",
+                            "commands":[
+                                "sudo mkbundle build/smake.exe build/Newtonsoft.Json.dll -o /bin/smake",
+                                "sudo chmod +x /bin/smake"
+                            ],
                             "is_post":true
                         }
                     ]
@@ -46,8 +43,7 @@
                     "command_only":true,
                     "recipe_data":[
                         {
-                            "command":"smake",
-                            "arguments":"--clean",
+                            "commands":["smake --clean"],
                             "is_post":true
                         }
                     ]
@@ -55,21 +51,39 @@
             ]
         },
         {
-            "target_name":"full",
+            "target_name":"all",
             "recipes":[
                 {
-                    "recipe_name":"full",
+                    "recipe_name":"all",
                     "command_only":true,
                     "recipe_data":[
                         {
-                            "command":"smake",
-                            "arguments":"",
+                            "commands":["smake"],
                             "is_post":true
                         },
                         {
-                            "command":"smake",
-                            "arguments":"clean",
+                            "commands":["smake clean"],
                             "is_post":true
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "target_name":"commit",
+            "recipes":[
+                {
+                    "recipe_name":"commit",
+                    "command_only":true,
+                    "recipe_data":[
+                        {
+                            "commands":[
+                                "git add --all",
+                                "bash message=$(dialog --inputbox \"Enter commit message:\" 6 70 2 2>&1 1>&3)",
+                                "git commit -m $message",
+                                "git push"
+                            ],
+                            "is_post":false
                         }
                     ]
                 }

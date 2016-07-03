@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Collections;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using SharpMake.Data;
 
 /*
 -----This application uses Json.Net which is under the MIT License-----
@@ -59,42 +60,6 @@ namespace SharpMake
 {
     public class SharpMakeVars
     {
-        public class RecipeData
-        {
-            public string command { get; set; }
-            public string arguments { get; set; }
-            public bool is_post { get; set; }
-        }
-
-        public class Recipes
-        {
-            public string recipe_name { get; set; }
-            public bool command_only { get; set; }
-            public List<RecipeData> recipe_data { get; set; }
-        }
-
-        public class Target
-        {
-            public string target_name { get; set; }
-            public List<string> ref_asm { get; set; }
-            public List<string> lnk_files { get; set; }
-            public List<string> ref_packs { get; set; }
-            public List<Recipes> recipes { get; set; }
-            public string output { get; set; }
-            public string output_type { get; set; }
-            public bool unsafe_code { get; set; }
-            public string platform { get; set; }
-            public string code_root { get; set; }
-            public string output_dir { get; set; }
-            public string lib_dir { get; set; }
-            public bool sequencial_naming { get; set; }
-        }
-
-        public class SharpMakeConfig
-        {
-            public List<Target> target { get; set; }
-        }
-
         //Compiler Flags
         public static string COMPILER = "mcs";
         public static readonly string COMPILER_OUT_FLAG = "-out:";
@@ -132,7 +97,7 @@ namespace SharpMake
         private static string CRT_MKFL = "Makefile";
         private static int TARGET = 0;
         private static string TARGET_NAME = "default";
-        private static SharpMakeVars.SharpMakeConfig CONFIG;
+        private static MakefileData CONFIG;
         private static bool COMMAND_ONLY = false;
 
         private static string forced_output = "";
@@ -203,7 +168,7 @@ namespace SharpMake
                 try
                 {
                     Print("Loading Makefile...");
-                    CONFIG = JsonConvert.DeserializeObject<SharpMakeVars.SharpMakeConfig>(dat);
+                    CONFIG = JsonConvert.DeserializeObject<MakefileData>(dat);
                 }
                 catch
                 {
@@ -253,7 +218,7 @@ namespace SharpMake
 
         private static bool ContainsTargetName(string name)
         {
-            foreach(SharpMakeVars.Target t in CONFIG.target)
+            foreach(Target t in CONFIG.target)
             {
                 if (t.target_name == name)
                     return true;
@@ -264,7 +229,7 @@ namespace SharpMake
         private static int GetTargetIdFromName(string name)
         {
             int index = 0;
-            foreach(SharpMakeVars.Target t in CONFIG.target)
+            foreach(Target t in CONFIG.target)
             {
                 if (t.target_name == name)
                     return index;
@@ -277,7 +242,7 @@ namespace SharpMake
         {
             if (CONFIG.target[TARGET].recipes != null && CONFIG.target[TARGET].recipes.Count > 0)
             {
-                foreach(SharpMakeVars.Recipes r in CONFIG.target[TARGET].recipes)
+                foreach(Recipes r in CONFIG.target[TARGET].recipes)
                 {
                     if (r.recipe_name == name)
                     {
@@ -300,14 +265,14 @@ namespace SharpMake
             Post
         }
 
-        private static List<SharpMakeVars.RecipeData> GetRecipesFor(string name, RecipeTiming timing)
+        private static List<RecipeData> GetRecipesFor(string name, RecipeTiming timing)
         {
-            List<SharpMakeVars.RecipeData> output = new List<SharpMakeVars.RecipeData>();
-            foreach(SharpMakeVars.Recipes r in CONFIG.target[TARGET].recipes)
+            List<RecipeData> output = new List<RecipeData>();
+            foreach(Recipes r in CONFIG.target[TARGET].recipes)
             {
                 if (r.recipe_name == name)
                 {
-                    foreach(SharpMakeVars.RecipeData dat in r.recipe_data)
+                    foreach(RecipeData dat in r.recipe_data)
                     {
                         if (dat.is_post && timing == RecipeTiming.Post)
                             output.Add (dat);
@@ -324,9 +289,15 @@ namespace SharpMake
             Print("Running pre-recipes for " + CONFIG.target[TARGET].target_name + "...");
             if (ContainsRecipeWithName(CONFIG.target[TARGET].target_name, true))
             {
-                foreach(var dat in GetRecipesFor(CONFIG.target[TARGET].target_name, RecipeTiming.Pre))
+                foreach(var data in GetRecipesFor(CONFIG.target[TARGET].target_name, RecipeTiming.Pre))
                 {
-                    RunCommandIndep(dat.command, dat.arguments);
+                    foreach(var dat in data.commands)
+                    {
+                        string command = dat.Split(' ')[0];
+                        string args = dat.Substring(command.Length);
+
+                        RunCommandIndep(command, args);
+                    }
                 }
             }
         }
@@ -336,9 +307,15 @@ namespace SharpMake
             Print("Running post-recipes for " + CONFIG.target[TARGET].target_name + "...");
             if (ContainsRecipeWithName(CONFIG.target[TARGET].target_name, false))
             {
-                foreach(SharpMakeVars.RecipeData dat in GetRecipesFor(CONFIG.target[TARGET].target_name, RecipeTiming.Post))
+                foreach(var data in GetRecipesFor(CONFIG.target[TARGET].target_name, RecipeTiming.Post))
                 {
-                    RunCommandIndep(dat.command, dat.arguments);
+                    foreach(var dat in data.commands)
+                    {
+                        string command = dat.Split(' ')[0];
+                        string args = dat.Substring(command.Length);
+
+                        RunCommandIndep(command, args);
+                    }
                 }
             }
         }
@@ -346,52 +323,55 @@ namespace SharpMake
 
         private static void BeginBuild()
         {
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            if (!string.IsNullOrEmpty(forced_output))
-                CONFIG.target[TARGET].output = forced_output;
-
-
-            if (IS_VERBOSE)
+            if (!COMMAND_ONLY)
             {
-                Console.WriteLine("[VERBOSE ENABLED]\n");
-                Console.WriteLine(RunCommand("mcs", "--about"));
-            }
-            //VerbosePrint("InputJSON: \n" + File.ReadAllText(CRT_MKFL));
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                if (!string.IsNullOrEmpty(forced_output))
+                    CONFIG.target[TARGET].output = forced_output;
 
 
-            VerbosePrint("OutputFile: " + CONFIG.target[TARGET].output + " | OutputType: " + CONFIG.target[TARGET].output_type);
-            Print("Preparing output directory...");
-            GetDir(CONFIG.target[TARGET].output_dir);
-
-            Print("Adding files to build queue...");
-            foreach(string file in Directory.GetFiles(CONFIG.target[TARGET].code_root))
-            {
-                VerbosePrint("Adding file: " + file + " to build queue...");
-                CMD_ARGS += file + " ";
-            }
-
-            Print("Referencing Assemblies...");
-            foreach(string asm in Directory.GetFiles(CONFIG.target[TARGET].lib_dir))
-            {
-                VerbosePrint("Checking out assembly: " + asm + "...");
-                if (CONFIG.target[TARGET].ref_asm.Contains(asm.Replace(CONFIG.target[TARGET].lib_dir, "")))
+                if (IS_VERBOSE)
                 {
-                    ReferenceAssembly(asm);
-                    if (!File.Exists(CONFIG.target[TARGET].output_dir + asm.Replace(CONFIG.target[TARGET].lib_dir, "")))
-                        File.Copy(asm, CONFIG.target[TARGET].output_dir + asm.Replace(CONFIG.target[TARGET].lib_dir, ""));
+                    Console.WriteLine("[VERBOSE ENABLED]\n");
+                    Console.WriteLine(RunCommand("mcs", "--about"));
                 }
+                //VerbosePrint("InputJSON: \n" + File.ReadAllText(CRT_MKFL));
+
+
+                VerbosePrint("OutputFile: " + CONFIG.target[TARGET].output + " | OutputType: " + CONFIG.target[TARGET].output_type);
+                Print("Preparing output directory...");
+                GetDir(CONFIG.target[TARGET].output_dir);
+
+                Print("Adding files to build queue...");
+                foreach(string file in Directory.GetFiles(CONFIG.target[TARGET].code_root))
+                {
+                    VerbosePrint("Adding file: " + file + " to build queue...");
+                    CMD_ARGS += file + " ";
+                }
+
+                Print("Referencing Assemblies...");
+                foreach(string asm in Directory.GetFiles(CONFIG.target[TARGET].lib_dir))
+                {
+                    VerbosePrint("Checking out assembly: " + asm + "...");
+                    if (CONFIG.target[TARGET].ref_asm.Contains(asm.Replace(CONFIG.target[TARGET].lib_dir, "")))
+                    {
+                        ReferenceAssembly(asm);
+                        if (!File.Exists(CONFIG.target[TARGET].output_dir + asm.Replace(CONFIG.target[TARGET].lib_dir, "")))
+                            File.Copy(asm, CONFIG.target[TARGET].output_dir + asm.Replace(CONFIG.target[TARGET].lib_dir, ""));
+                    }
+                }
+
+                SetOutputFile();
+
+                if (!IS_VERBOSE)
+                    Print(string.Format("Compiling {0} to {1}...",CONFIG.target[TARGET].output + TranslateExtensionNoAction(CONFIG.target[TARGET].output_type), CONFIG.target[TARGET].output_dir));
+                VerbosePrint("Running Compiler... [mcs " + CMD_ARGS + "]");
+                if (!IS_VERBOSE) RunCommand("mcs", CMD_ARGS);
+                else RunCommandIndep("mcs", CMD_ARGS);
+                watch.Stop();
+                var elapsedMs = watch.ElapsedMilliseconds;
+                Print(string.Format("Done! [Build Time {0}ms]", elapsedMs));
             }
-
-            SetOutputFile();
-
-            if (!IS_VERBOSE)
-                Print(string.Format("Compiling {0} to {1}...",CONFIG.target[TARGET].output + TranslateExtensionNoAction(CONFIG.target[TARGET].output_type), CONFIG.target[TARGET].output_dir));
-            VerbosePrint("Running Compiler... [mcs " + CMD_ARGS + "]");
-            if (!IS_VERBOSE) RunCommand("mcs", CMD_ARGS);
-            else RunCommandIndep("mcs", CMD_ARGS);
-            watch.Stop();
-            var elapsedMs = watch.ElapsedMilliseconds;
-            Print(string.Format("Done! [Build Time {0}ms]", elapsedMs));
         }
 
         private static void VerbosePrint(string message)
