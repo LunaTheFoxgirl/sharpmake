@@ -20,7 +20,7 @@ namespace SharpMake.Data
         public string target_name { get; set; }
         public List<string> ref_asm { get; set; }
         public List<object> lnk_files { get; set; }
-        public List<object> ref_packs { get; set; }
+        public List<object> ref_pkgs { get; set; }
         public List<Recipes> recipes { get; set; }
         public string output { get; set; }
         public string output_type { get; set; }

@@ -265,6 +265,30 @@ namespace SharpMake
             Post
         }
 
+        static List<string> GetFilesRecursivley(string dir)
+        {
+            List<string> files = new List<string>();
+            try
+            {
+                foreach (string f in Directory.GetFiles(dir))
+                {
+                    files.Add(f);
+                }
+                foreach (string d in Directory.GetDirectories(dir))
+                {
+                    foreach (string fi in GetFilesRecursivley(d))
+                    {
+                        files.Add(fi);
+                    }
+                }
+            }
+            catch (System.Exception excpt)
+            {
+                Console.WriteLine(excpt.Message);
+            }
+            return files;
+        }
+
         private static List<RecipeData> GetRecipesFor(string name, RecipeTiming timing)
         {
             List<RecipeData> output = new List<RecipeData>();
@@ -343,10 +367,9 @@ namespace SharpMake
                 GetDir(CONFIG.target[TARGET].output_dir);
 
                 Print("Adding files to build queue...");
-                foreach(string file in Directory.GetFiles(CONFIG.target[TARGET].code_root))
+                foreach(string file in GetFilesRecursivley(CONFIG.target[TARGET].code_root))
                 {
-                    VerbosePrint("Adding file: " + file + " to build queue...");
-                    CMD_ARGS += file + " ";
+                    AddFile(file);
                 }
 
                 Print("Referencing Assemblies...");
@@ -360,6 +383,11 @@ namespace SharpMake
                             File.Copy(asm, CONFIG.target[TARGET].output_dir + asm.Replace(CONFIG.target[TARGET].lib_dir, ""));
                     }
                 }
+                Print("Referencing Packages...");
+                foreach(string pkg in CONFIG.target[TARGET].ref_pkgs)
+                {
+                    AddPackage(pkg);
+                }
 
                 SetOutputFile();
 
@@ -372,6 +400,21 @@ namespace SharpMake
                 var elapsedMs = watch.ElapsedMilliseconds;
                 Print(string.Format("Done! [Build Time {0}ms]", elapsedMs));
             }
+        }
+
+        private static void AddPackage(string package)
+        {
+            VerbosePrint("Adding reference to package: " + package + "...");
+            CMD_ARGS += "-pkg:" + package + " ";
+        }
+
+        private static void AddFile(string file)
+        {
+            VerbosePrint("Adding file: " + file + " to build queue...");
+            if (file.ToLower().EndsWith(".resx") || file.ToLower().EndsWith(".res"))
+                CMD_ARGS += "-resource:" + file + " ";
+            else if (file.ToLower().EndsWith(".cs"))
+                CMD_ARGS += file + " ";
         }
 
         private static void VerbosePrint(string message)

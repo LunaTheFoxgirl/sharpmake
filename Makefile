@@ -8,7 +8,7 @@
             "lnk_files":[
 
             ],
-            "ref_packs":[
+            "ref_pkgs":[
 
             ],
             "recipes":[
