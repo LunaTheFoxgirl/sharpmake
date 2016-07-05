@@ -308,11 +308,16 @@ namespace SharpMake
             return output;
         }
 
+        private static System.Diagnostics.Stopwatch recipeWatch = null;
         private static void BeginRecipePre()
         {
             Print("Running pre-recipes for " + CONFIG.target[TARGET].target_name + "...");
             if (ContainsRecipeWithName(CONFIG.target[TARGET].target_name, true))
             {
+                if (COMMAND_ONLY)
+                {
+                    recipeWatch = System.Diagnostics.Stopwatch.StartNew();
+                }
                 foreach(var data in GetRecipesFor(CONFIG.target[TARGET].target_name, RecipeTiming.Pre))
                 {
                     foreach(var dat in data.commands)
@@ -341,6 +346,12 @@ namespace SharpMake
                         RunCommandIndep(command, args);
                     }
                 }
+            }
+            if (COMMAND_ONLY)
+            {
+                recipeWatch.Stop();
+                var elapsedMs = recipeWatch.ElapsedMilliseconds;
+                Print(string.Format("Done! [Recipe Time {0}ms]", elapsedMs));
             }
         }
 
@@ -411,9 +422,9 @@ namespace SharpMake
         private static void AddFile(string file)
         {
             VerbosePrint("Adding file: " + file + " to build queue...");
-            if (file.ToLower().EndsWith(".resx") || file.ToLower().EndsWith(".res"))
+            if (!file.ToLower().EndsWith(".cs"))
                 CMD_ARGS += "-resource:" + file + " ";
-            else if (file.ToLower().EndsWith(".cs"))
+            else
                 CMD_ARGS += file + " ";
         }
 
